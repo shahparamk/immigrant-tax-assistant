@@ -291,27 +291,6 @@ The knowledge base covers 7 countries representing the largest international stu
 
 ---
 
-## 📋 Assignment Submission
-
-**Course:** IS 7200 — Generative AI
-**Instructor:** Prof. Nik Bear Brown
-**University:** Northeastern University
-**Student:** Param Shah (pshah8011)
-**Semester:** Spring 2026
-
-**Components Implemented:**
-- ✅ Retrieval-Augmented Generation (RAG)
-- ✅ Prompt Engineering
-
-**Deliverables:**
-- ✅ GitHub Repository (this repo)
-- ✅ HuggingFace Space (live demo)
-- ✅ PDF Documentation
-- ✅ Web Page
-- ✅ Video Demonstration
-
----
-
 ## 📄 License
 
 MIT License — see [LICENSE](LICENSE) for details.
