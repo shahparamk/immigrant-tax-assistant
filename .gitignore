@@ -1,0 +1,15 @@
+# Large binary files — download from HuggingFace Space
+embeddings.npy
+faiss_index.bin
+metadata.json
+chunks.json
+
+# Environment
+.env
+__pycache__/
+*.pyc
+.DS_Store
+*.egg-info/
+dist/
+build/
+.ipynb_checkpoints/
