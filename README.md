@@ -11,11 +11,11 @@
 
 ## 📌 Overview
 
-The **Immigrant Tax Filing Assistant** is a production-grade Retrieval-Augmented Generation (RAG) system that provides accurate, cited tax guidance for non-resident aliens in the United States. Built for F-1, OPT, H-1B, and J-1 visa holders, the system answers tax questions by retrieving relevant IRS documentation and generating grounded, citation-mandatory responses using a large language model.
+The **Immigrant Tax Filing Assistant** is a production-grade Retrieval-Augmented Generation (RAG) system that provides accurate, cited tax guidance for non-resident aliens in the United States. Built for F-1, OPT, H-1B, and J-1 visa holders, the system answers tax questions by retrieving relevant IRS documentation and generating grounded, citation-mandatory responses.
 
-The system combines **two core generative AI components** as required by the assignment:
-1. **Retrieval-Augmented Generation (RAG)** — 23 IRS documents, 3,699 chunks, FAISS vector store
-2. **Prompt Engineering** — Citation-mandatory system prompt, CPA escalation layer, profile-aware context injection
+The system combines **two core generative AI components**:
+1. **Retrieval-Augmented Generation (RAG)** — dual-source knowledge base: 23 IRS PDFs + 4 IRS.gov HTML pages, 3,726 chunks, FAISS vector store
+2. **Prompt Engineering** — citation-mandatory system prompt, CPA escalation layer, profile-aware context injection
 
 **Live Demo:** [huggingface.co/spaces/pshah8011/immigrant-tax-assistant](https://huggingface.co/spaces/pshah8011/immigrant-tax-assistant)
 
@@ -23,7 +23,7 @@ The system combines **two core generative AI components** as required by the ass
 
 ## 🎯 Problem Statement
 
-International students and workers face unique and complex U.S. tax obligations — nonresident alien status, treaty benefits, FICA exemptions, Form 8843 requirements, and more. Generic tax tools don't address visa-specific rules, and professional CPAs are expensive. This system bridges that gap by providing free, accurate, IRS-grounded tax guidance tailored to each user's visa type and home country.
+International students and workers face unique U.S. tax obligations — nonresident alien status, treaty benefits, FICA exemptions, Form 8843 requirements, and more. Generic tax tools don't address visa-specific rules, and professional CPAs are expensive. This system bridges that gap by providing free, accurate, IRS-grounded tax guidance tailored to each user's visa type and home country.
 
 ---
 
@@ -35,102 +35,68 @@ International students and workers face unique and complex U.S. tax obligations 
 | 📚 **Citation-Mandatory** | Every answer cites specific IRS publications and page numbers |
 | ⚠️ **CPA Escalation** | 24 complex topics auto-detected and redirected to professionals |
 | 📅 **SPT Calculator** | Deterministic Substantial Presence Test — zero hallucination |
-| 📋 **Filing Checklist** | Personalized checklist generated from your conversation session |
-| 🌍 **Multi-Country** | Specific treaty support for India, China, South Korea, Germany, Mexico, Canada, Japan |
+| 📋 **Filing Checklist** | Personalized checklist generated from your session |
+| 🌍 **Multi-Country** | Treaty support: India, China, South Korea, Germany, Mexico, Canada, Japan |
 
 ---
 
 ## 🏗 System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    USER INTERFACE (Gradio)                   │
-│          Tab 1: Chat  │  Tab 2: SPT Calc  │  Tab 3: Checklist│
-└──────────────────────────┬──────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│              USER INTERFACE (Gradio)                 │
+│    Tab 1: Chat  │  Tab 2: SPT Calc  │  Tab 3: List  │
+└──────────────────────────┬──────────────────────────┘
                            │
                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   CPA ESCALATION LAYER                       │
-│   24 keywords (FBAR, crypto, state tax, audit, FATCA...)    │
-│   100% precision — system refuses to answer out-of-scope    │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ (if safe to answer)
+┌─────────────────────────────────────────────────────┐
+│              CPA ESCALATION LAYER                    │
+│  24 keywords → refuses and redirects to CPA         │
+│  100% precision — never answers out-of-scope        │
+└──────────────────────────┬──────────────────────────┘
+                           │ (safe to answer)
                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│              PROFILE-AWARE RETRIEVAL ENGINE                  │
-│                                                             │
-│  ┌─────────────────┐    ┌──────────────────────────────┐   │
-│  │ Metadata Filter  │    │    Query Enrichment           │   │
-│  │ Country + Visa   │    │    visa_type + country        │   │
-│  │ Filtering        │    │    + years_in_us              │   │
-│  └────────┬────────┘    └──────────────┬───────────────┘   │
-│           │                            │                     │
-│           ▼                            ▼                     │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │              FAISS IndexFlatIP                        │   │
-│  │         3,699 vectors · 384 dimensions               │   │
-│  │         all-MiniLM-L6-v2 embeddings                  │   │
-│  └──────────────────────────────────────────────────────┘   │
-│           │                                                  │
-│           ▼                                                  │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │           SMART RE-RANKING LAYER                      │   │
-│  │   9 signal categories · Source specificity boosts    │   │
-│  │   Treaty boost · Form boost · Fellowship boost       │   │
-│  └──────────────────────────────────────────────────────┘   │
-└──────────────────────────┬──────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│         PROFILE-AWARE RETRIEVAL ENGINE               │
+│  Metadata filter (country + visa) → FAISS search    │
+│  Smart re-ranking: 9 signal categories, 1.1x–1.6x  │
+└──────────────────────────┬──────────────────────────┘
                            │ Top-5 chunks
                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  PROMPT ENGINEERING LAYER                    │
-│                                                             │
-│  System Prompt: Citation-mandatory, context-only rules      │
-│  User Profile injection: visa + country + income            │
-│  Retrieved IRS context: up to 5 chunks (600 chars each)     │
-│  Session history: last 3 conversation turns                  │
-└──────────────────────────┬──────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│            PROMPT ENGINEERING LAYER                  │
+│  Profile + IRS context + citation-mandatory rules   │
+└──────────────────────────┬──────────────────────────┘
                            │
                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│              GROQ LLaMA 3.1 8B Instant                      │
-│         Temperature: 0.0 · Max tokens: 1,024                │
-│         Fast inference (~1-2 seconds)                        │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-                  Cited Answer + Sources
+┌─────────────────────────────────────────────────────┐
+│          Groq LLaMA 3.1 8B Instant                  │
+│          temperature=0.0 · max_tokens=1024          │
+└─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📚 Knowledge Base
+## 📚 Knowledge Base — Dual Source
 
-**23 IRS Documents — 3,699 Chunks — Avg 1,142 chars/chunk**
+**3,726 total chunks from 2 source types**
 
-### Core Publications
-| Document | Description | Topics |
-|---|---|---|
-| IRS Publication 519 | U.S. Tax Guide for Aliens | SPT, FICA, residency, filing |
-| IRS Publication 901 | U.S. Tax Treaties | Treaty benefits, student exemptions |
-| IRS Publication 515 | Withholding on Nonresidents | Withholding rates, Chapter 3 |
-| IRS Publication 970 | Tax Benefits for Education | Fellowship, scholarship taxation |
-| IRS Publication 525 | Taxable and Nontaxable Income | Income classification |
-| IRS Publication 54 | Tax Guide for U.S. Citizens Abroad | Foreign income |
-| IRS Publication 596 | Earned Income Credit | EIC eligibility |
-
-### Forms & Instructions
-| Form | Description |
+### IRS PDFs (3,699 chunks)
+| Category | Documents |
 |---|---|
-| Form 1040-NR Instructions | Nonresident Alien Tax Return |
-| Form 1042-S Instructions | Foreign Person U.S. Source Income |
-| Form 8843 | Statement for Exempt Individuals |
-| Form W-8BEN Instructions | Certificate of Foreign Status |
-| Form 4868 | Extension of Time to File |
-| Form 8233 | Exemption from Withholding |
-| Form 8840 | Closer Connection Exception |
+| Core Publications | Pub 519, 901, 515, 970, 525, 54, 596 |
+| Forms | 1040-NR, 1042-S, 8843, W-8BEN, 4868, 8233, 8840 |
+| Tax Treaties | India, China, South Korea, Germany, Mexico, Canada, Japan |
 
-### Tax Treaties
-India · China · South Korea · Germany · Mexico · Canada · Japan
+### IRS HTML Pages (27 chunks)
+| Page | Chunks |
+|---|---|
+| IRS Web — Substantial Presence Test | 4 |
+| IRS Web — Taxation of Nonresident Aliens | 8 |
+| IRS Web — Tax Treaties Overview | 4 |
+| IRS Web — NRA Figuring Your Tax | 11 |
+
+> **Why both?** PDFs provide detailed legal text. HTML pages use simpler conversational language that matches how users ask questions — bridging the vocabulary gap between colloquial queries and formal IRS legal text.
 
 ---
 
@@ -139,24 +105,10 @@ India · China · South Korea · Germany · Mexico · Canada · Japan
 | Metric | Score | Target | Method |
 |---|---|---|---|
 | Retrieval Accuracy | **80%** (8/10) | ≥80% | Manual 10-question battery |
-| Escalation Precision | **100%** (5/5) | 100% | CPA keyword detection |
-| SPT Calculator | **100%** (3/3) | 100% | Deterministic Python |
+| Escalation Precision | **100%** (5/5) | 100% | CPA keyword detection tests |
+| SPT Calculator | **100%** (3/3) | 100% | Deterministic Python unit tests |
 | Faithfulness | **0.92** | ≥0.85 | LLM-as-judge (Groq) |
 | Answer Relevancy | **0.89** | ≥0.85 | LLM-as-judge (Groq) |
-
-### Retrieval Accuracy Detail (10-test battery)
-```
-✓ IRS Publication 519   — Substantial Presence Test query
-✓ IRS Publication 519   — FICA exemption query
-✓ Form 1040-NR          — Filing forms query
-✓ US-India Tax Treaty   — Article 21 exemption query
-✗ Form 1042-S           — Fellowship taxation (Pub 970 wins — knowledge gap)
-✓ Form W-8BEN           — Certificate of foreign status
-✓ Form 4868             — Filing extension
-✓ Form 8840             — Closer connection exception
-✓ IRS Publication 970   — Scholarship income
-✓ IRS Publication 515   — Withholding rates
-```
 
 ---
 
@@ -165,27 +117,13 @@ India · China · South Korea · Germany · Mexico · Canada · Japan
 ```
 immigrant-tax-assistant/
 │
-├── app.py                       # Main Gradio application (3 tabs)
-│   ├── Tab 1: Tax Q&A Chat
-│   ├── Tab 2: SPT Calculator
-│   └── Tab 3: Filing Checklist
-│
-├── knowledge_base.py            # TaxKnowledgeBase class
-│   ├── FAISS vector retrieval
-│   ├── Metadata filtering (country/visa)
-│   └── Smart re-ranking with signal boosts
-│
-├── spt_calculator.py            # Deterministic SPT calculator
-│   └── Pure Python — no LLM, no hallucination
-│
-├── prompts.py                   # Prompt engineering layer
-│   ├── Citation-mandatory system prompt
-│   ├── CPA escalation keywords (24)
-│   └── RAG prompt builder
-│
-├── requirements.txt             # Python dependencies
-├── tax_assistant_pipeline.ipynb # Complete Kaggle pipeline notebook
-└── README.md                    # This file
+├── app.py                        # Gradio app (3 tabs: Chat, SPT Calc, Checklist)
+├── knowledge_base.py             # FAISS retrieval + metadata filtering + re-ranking
+├── spt_calculator.py             # Deterministic SPT calculator (no LLM)
+├── prompts.py                    # System prompt + CPA escalation (24 keywords)
+├── requirements.txt              # Python dependencies
+├── tax_assistant_pipeline.ipynb  # Complete Kaggle pipeline (Steps 1A+1B+1C+2+3)
+└── README.md
 ```
 
 > **Note:** Large binary files (`embeddings.npy`, `faiss_index.bin`, `metadata.json`, `chunks.json`) are excluded via `.gitignore`. Download from the HuggingFace Space files tab.
@@ -201,8 +139,8 @@ immigrant-tax-assistant/
 ### Installation
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/pshah8011/immigrant-tax-assistant
+# 1. Clone the repo
+git clone https://github.com/shahparamk/immigrant-tax-assistant
 cd immigrant-tax-assistant
 
 # 2. Install dependencies
@@ -215,39 +153,39 @@ export GROQ_API_KEY=your_groq_api_key_here
 # Go to: https://huggingface.co/spaces/pshah8011/immigrant-tax-assistant/tree/main
 # Download: embeddings.npy, faiss_index.bin, metadata.json,
 #           chunks.json, filter_maps.json, pipeline_config.json
-# Place all files in the same directory as app.py
+# Place all in same directory as app.py
 
-# 5. Run the app
+# 5. Run
 python app.py
 ```
 
-### Rebuild the Knowledge Base (Optional)
+### Rebuild Knowledge Base (Optional)
 
 ```bash
-# Run the complete pipeline notebook on Kaggle
-# File: tax_assistant_pipeline.ipynb
+# Run tax_assistant_pipeline.ipynb on Kaggle
 # Settings: GPU OFF, Internet ON
-# Runtime: ~10 minutes
+# Runtime: ~12 minutes
+# Steps: 1A (download PDFs) + 1B (chunk PDFs) + 1C (scrape HTML) + 2 (embed) + 3 (RAG)
 ```
 
 ---
 
 ## 🔧 Key Design Decisions
 
-### Why RAG over Fine-Tuning?
-Tax law changes yearly. RAG allows updating the knowledge base by replacing PDF files without retraining any model. Fine-tuning would permanently bake in 2024 rules — RAG stays current with new IRS publications.
+**Why RAG over Fine-Tuning?**
+Tax law changes yearly. RAG allows updating the knowledge base by replacing PDF/HTML sources without retraining. Fine-tuning would permanently bake in 2024 rules.
 
-### Why Groq LLaMA 3.1 8B?
-Free API tier, ~1-2 second inference, sufficient accuracy for citation-heavy structured responses. No OpenAI dependency means zero cost for the end user.
+**Why dual-source (PDF + HTML)?**
+PDFs provide detailed legal text. IRS.gov HTML pages use simpler language closer to how users ask questions — improving retrieval accuracy for colloquial queries.
 
-### Why Temperature = 0.0?
-Tax answers must be deterministic and reproducible. The same question must give the same answer every time. Creativity is a liability in financial guidance.
+**Why Groq LLaMA 3.1 8B?**
+Free API tier, ~1-2 second inference, no OpenAI dependency, sufficient accuracy for citation-heavy structured responses.
 
-### Why CPA Escalation Architecture?
-FBAR, FATCA, crypto income, state taxes, dual-status returns — these require professional judgment beyond what any AI system should attempt. The system refuses rather than hallucinate, protecting users from potentially costly incorrect advice.
+**Why Temperature = 0.0?**
+Tax answers must be deterministic. The same question must give the same answer every time. Creativity is a liability in financial guidance.
 
-### Why Topic Enrichment on Chunks?
-Raw IRS text uses formal legal language. By prepending semantic keywords to each chunk before embedding ("FICA social security medicare tax exempt nonresident alien student"), retrieval accuracy improved significantly for colloquial user queries.
+**Why CPA Escalation?**
+FBAR, FATCA, crypto, state taxes — these require professional judgment. The system refuses rather than hallucinate, protecting users from incorrect advice.
 
 ---
 
@@ -261,45 +199,52 @@ Raw IRS text uses formal legal language. By prepending semantic keywords to each
 
 ---
 
+## 🔧 Technology Stack
+
+| Component | Technology |
+|---|---|
+| LLM | Groq LLaMA 3.1 8B Instant |
+| Embeddings | all-MiniLM-L6-v2 (384-dim) |
+| Vector Store | FAISS IndexFlatIP |
+| Orchestration | LangChain 0.3+ |
+| PDF Parsing | PyMuPDF (fitz) |
+| HTML Scraping | BeautifulSoup4 |
+| Frontend | Gradio 5.25.0 |
+| Deployment | HuggingFace Spaces |
+| Training | Kaggle Notebooks |
+
+---
+
 ## ⚠️ Ethical Considerations
 
-**Accuracy & Hallucination Prevention**
-The system uses temperature=0.0, citation-mandatory prompts, and context-only rules to minimize hallucination. All answers must cite specific IRS sources.
-
-**Scope Limitation**
-24 escalation keywords ensure complex topics (FBAR, crypto, state taxes, audits) are redirected to licensed CPAs. The system knows its limits.
-
-**Disclaimer**
-Every response includes: *"This tool provides general tax information. It is NOT a substitute for professional tax advice."*
-
-**Privacy**
-No user data is stored or logged. Conversations are session-only and cleared on page refresh.
-
-**Bias Considerations**
-The knowledge base covers 7 countries representing the largest international student populations in the US. Users from other countries receive general guidance based on IRS Publication 519.
+- **Hallucination prevention** — temperature=0.0, citation-mandatory prompts, context-only rules
+- **Scope limitation** — 24 escalation keywords redirect complex topics to licensed CPAs
+- **Privacy** — no user data stored, sessions are ephemeral
+- **Disclaimer** — every response reminds users this is not professional tax advice
+- **Geographic bias** — 7 countries covered; users from other countries noted in UI
+- **Copyright** — all IRS documents are U.S. government public domain publications
 
 ---
 
 ## 🔮 Future Improvements
 
-- Add IRS Publication 901 treaty coverage for 50+ countries
-- Integrate real-time IRS publication updates via web scraping
-- Add Form auto-fill capability (pre-fill 1040-NR from conversation)
-- Support for dual-status return guidance (with CPA oversight)
-- Multi-language support for non-English speakers
-- Voice interface for accessibility
+- Treaty coverage for 50+ countries (currently 7)
+- Real-time IRS publication updates via automated annual scraping
+- Fix fellowship income retrieval gap (1042-S accuracy)
+- Form auto-fill: pre-populate 1040-NR from conversation context
+- Multi-language support (Hindi, Mandarin, Korean, Spanish)
+- Voice interface using Whisper STT
 
----
 
 ## 📄 License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License
 
 ---
 
 <div align="center">
-Built with ❤️ using LangChain · Groq · FAISS · Gradio · HuggingFace
+Built with LangChain · Groq · FAISS · Gradio · HuggingFace
 <br>
 <a href="https://huggingface.co/spaces/pshah8011/immigrant-tax-assistant">Live Demo</a> ·
-<a href="https://github.com/pshah8011/immigrant-tax-assistant">GitHub</a>
+<a href="https://shahparamk.github.io/immigrant-tax-assistant">Web Page</a>
 </div>
