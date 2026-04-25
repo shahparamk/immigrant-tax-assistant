@@ -2,7 +2,6 @@
 ### AI-Powered Tax Guidance for International Students & Workers in the United States
 
 [![Live Demo](https://img.shields.io/badge/🤗%20HuggingFace-Live%20Demo-blue)](https://huggingface.co/spaces/pshah8011/immigrant-tax-assistant)
-Youtube Video :- https://youtu.be/ZERlwep_0fw
 [![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
 [![LangChain](https://img.shields.io/badge/LangChain-0.3-orange)](https://langchain.com)
 [![Groq](https://img.shields.io/badge/Groq-LLaMA%203.1-purple)](https://groq.com)
@@ -19,6 +18,7 @@ The system combines **two core generative AI components**:
 2. **Prompt Engineering** — citation-mandatory system prompt, CPA escalation layer, profile-aware context injection
 
 **Live Demo:** [huggingface.co/spaces/pshah8011/immigrant-tax-assistant](https://huggingface.co/spaces/pshah8011/immigrant-tax-assistant)
+**Youtube Video** :- https://youtu.be/ZERlwep_0fw
 
 ---
 
